@@ -28,6 +28,7 @@ func urlShortenerHandler(w http.ResponseWriter, r *http.Request) {
 		var newUrl strings.Builder
 		newUrl.WriteString("http://localhost:8080/")
 		newUrl.WriteString(strconv.Itoa(id))
+		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(newUrl.String()))
 
 		return
