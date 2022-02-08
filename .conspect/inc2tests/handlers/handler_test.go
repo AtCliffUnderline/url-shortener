@@ -1,7 +1,7 @@
 package handlers_test
 
 import (
-	"github.com/AtCliffUnderline/url-shortener/internal/inc2tests/handlers"
+	"github.com/AtCliffUnderline/url-shortener/.conspect/inc2tests/handlers"
 	"io"
 	"net/http"
 	"net/http/httptest"

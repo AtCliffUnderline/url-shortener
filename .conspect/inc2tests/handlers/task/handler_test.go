@@ -2,7 +2,7 @@ package task_test
 
 import (
 	"encoding/json"
-	"github.com/AtCliffUnderline/url-shortener/internal/inc2tests/handlers/task"
+	"github.com/AtCliffUnderline/url-shortener/.conspect/inc2tests/handlers/task"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
