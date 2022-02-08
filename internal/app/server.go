@@ -13,16 +13,16 @@ func StartServer() {
 }
 
 func createRouting() {
-	http.HandleFunc("/", urlShortenerHandler)
+	http.HandleFunc("/", UrlShortenerHandler)
 }
 
-func urlShortenerHandler(w http.ResponseWriter, r *http.Request) {
+func UrlShortenerHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost && r.URL.Path == "/" {
 		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			panic(err)
 		}
-		id := shortRoute(string(b))
+		id := ShortRoute(string(b))
 		var newURL strings.Builder
 		newURL.WriteString("http://localhost:8080/")
 		newURL.WriteString(strconv.Itoa(id))
@@ -36,7 +36,7 @@ func urlShortenerHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, "Bad ID", http.StatusBadRequest)
 		}
-		route, err := getRouteById(id)
+		route, err := GetRouteById(id)
 		if err != nil {
 			http.Error(w, "Bad ID", http.StatusBadRequest)
 		}
