@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-var routeMap = map[int]string{}
-
 func StartServer() {
 	createRouting()
 	http.ListenAndServe(":8080", nil)
@@ -35,20 +33,17 @@ func urlShortenerHandler(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == http.MethodGet {
 		pathID := r.URL.Path
 		id, err := strconv.Atoi(pathID[1:])
-		if err != nil || routeMap[id] == "" {
+		if err != nil {
 			http.Error(w, "Bad ID", http.StatusBadRequest)
 		}
-		w.Header().Set("Location", routeMap[id])
+		route, err := getRouteById(id)
+		if err != nil {
+			http.Error(w, "Bad ID", http.StatusBadRequest)
+		}
+		w.Header().Set("Location", route)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
 
 	http.Error(w, "Method not found", http.StatusBadRequest)
-}
-
-func shortRoute(fullRoute string) int {
-	id := len(routeMap)
-	routeMap[id] = fullRoute
-
-	return id
 }
