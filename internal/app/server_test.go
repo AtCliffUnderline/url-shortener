@@ -17,7 +17,7 @@ func TestUrlShortenerWrongMethod(t *testing.T) {
 	h.ServeHTTP(w, request)
 	result := w.Result()
 	assert.Equal(t, http.StatusBadRequest, result.StatusCode)
-	w.Result().Body.Close()
+	result.Body.Close()
 }
 
 func TestUrlShortenerSymbolicId(t *testing.T) {
@@ -27,7 +27,7 @@ func TestUrlShortenerSymbolicId(t *testing.T) {
 	h.ServeHTTP(w, request)
 	result := w.Result()
 	assert.Equal(t, http.StatusBadRequest, result.StatusCode)
-	w.Result().Body.Close()
+	result.Body.Close()
 }
 
 func TestUrlShortenerWrongId(t *testing.T) {
@@ -37,7 +37,7 @@ func TestUrlShortenerWrongId(t *testing.T) {
 	h.ServeHTTP(w, request)
 	result := w.Result()
 	assert.Equal(t, http.StatusBadRequest, result.StatusCode)
-	w.Result().Body.Close()
+	result.Body.Close()
 }
 
 func TestUrlShorteningSuccessful(t *testing.T) {
@@ -54,7 +54,7 @@ func TestUrlShorteningSuccessful(t *testing.T) {
 	err = result.Body.Close()
 	assert.NoError(t, err)
 	assert.Contains(t, string(newUrl), "/0")
-	w.Result().Body.Close()
+	result.Body.Close()
 
 	// step 2: redirect to
 	request = httptest.NewRequest(http.MethodGet, "/0", body)
@@ -63,5 +63,5 @@ func TestUrlShorteningSuccessful(t *testing.T) {
 	result = w.Result()
 	assert.Equal(t, http.StatusTemporaryRedirect, result.StatusCode)
 	assert.Equal(t, "https://yc.gl", result.Header.Get("Location"))
-	w.Result().Body.Close()
+	result.Body.Close()
 }
