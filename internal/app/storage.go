@@ -11,9 +11,9 @@ func ShortRoute(fullRoute string) int {
 	return id
 }
 
-func GetRouteById(id int) (string, error) {
+func GetRouteByID(id int) (string, error) {
 	if routeMap[id] == "" {
-		return "", errors.New("No route with this ID found")
+		return "", errors.New("no route with this ID found")
 	}
 
 	return routeMap[id], nil

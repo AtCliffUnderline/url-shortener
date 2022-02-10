@@ -19,13 +19,13 @@ func CreateRouter() *chi.Mux {
 	router.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not found", http.StatusBadRequest)
 	})
-	router.Post("/", shortUrlHandler)
-	router.Get("/{id}", retrieveShortUrlHandler)
+	router.Post("/", shortURLHandler)
+	router.Get("/{id}", retrieveShortURLHandler)
 
 	return router
 }
 
-func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
+func shortURLHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		panic(err)
@@ -38,17 +38,16 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(newURL.String()))
 }
 
-func retrieveShortUrlHandler(w http.ResponseWriter, r *http.Request) {
+func retrieveShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	pathID := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(pathID)
 	if err != nil {
 		http.Error(w, "Bad ID", http.StatusBadRequest)
 	}
-	route, err := GetRouteById(id)
+	route, err := GetRouteByID(id)
 	if err != nil {
 		http.Error(w, "Bad ID", http.StatusBadRequest)
 	}
 	w.Header().Set("Location", route)
 	w.WriteHeader(http.StatusTemporaryRedirect)
-	return
 }
