@@ -9,42 +9,50 @@ import (
 	"strings"
 )
 
+type HandlersCollection struct {
+	Storage RouteStorage
+}
+
 func StartServer() {
-	router := CreateRouter()
+	handlerCollection := &HandlersCollection{Storage: &DefaultRouteStorage{}}
+	router := handlerCollection.CreateRouter()
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-func CreateRouter() *chi.Mux {
+func (h *HandlersCollection) CreateRouter() *chi.Mux {
 	router := chi.NewRouter()
 	router.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not found", http.StatusBadRequest)
 	})
-	router.Post("/", shortURLHandler)
-	router.Get("/{id}", retrieveShortURLHandler)
+	router.Post("/", h.shortURLHandler)
+	router.Get("/{id}", h.retrieveShortURLHandler)
 
 	return router
 }
 
-func shortURLHandler(w http.ResponseWriter, r *http.Request) {
+func (h *HandlersCollection) shortURLHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		panic(err)
 	}
-	id := ShortRoute(string(b))
+	id := h.Storage.ShortRoute(string(b))
 	var newURL strings.Builder
 	newURL.WriteString("http://localhost:8080/")
 	newURL.WriteString(strconv.Itoa(id))
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(newURL.String()))
+	_, err = w.Write([]byte(newURL.String()))
+	if err != nil {
+		panic(err)
+	}
 }
 
-func retrieveShortURLHandler(w http.ResponseWriter, r *http.Request) {
+func (h *HandlersCollection) retrieveShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	pathID := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(pathID)
 	if err != nil {
 		http.Error(w, "Bad ID", http.StatusBadRequest)
 	}
-	route, err := GetRouteByID(id)
+	route, err := h.Storage.GetRouteByID(id)
 	if err != nil {
 		http.Error(w, "Bad ID", http.StatusBadRequest)
 	}

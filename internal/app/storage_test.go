@@ -7,14 +7,15 @@ import (
 )
 
 func TestStorage(t *testing.T) {
+	storage := app.DefaultRouteStorage{}
 	t.Run("add to storage and read successfully", func(t *testing.T) {
-		id := app.ShortRoute("some route")
-		route, err := app.GetRouteByID(id)
-		assert.Nil(t, err)
+		id := storage.ShortRoute("some route")
+		route, err := storage.GetRouteByID(id)
+		assert.NoError(t, err)
 		assert.Equal(t, "some route", route)
 	})
 	t.Run("read unexciting element", func(t *testing.T) {
-		_, err := app.GetRouteByID(123)
-		assert.NotNil(t, err)
+		_, err := storage.GetRouteByID(123)
+		assert.Error(t, err)
 	})
 }

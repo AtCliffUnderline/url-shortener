@@ -42,7 +42,8 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 }
 
 func TestRouter(t *testing.T) {
-	router := app.CreateRouter()
+	handlerCollection := &app.HandlersCollection{Storage: &app.DefaultRouteStorage{}}
+	router := handlerCollection.CreateRouter()
 	server := httptest.NewServer(router)
 	defer server.Close()
 
