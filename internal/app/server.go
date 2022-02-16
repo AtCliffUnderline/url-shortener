@@ -33,7 +33,8 @@ func (h *HandlersCollection) CreateRouter() *chi.Mux {
 func (h *HandlersCollection) shortURLHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		panic(err)
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
 	}
 	id := h.Storage.ShortRoute(string(b))
 	var newURL strings.Builder
@@ -42,7 +43,8 @@ func (h *HandlersCollection) shortURLHandler(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(newURL.String()))
 	if err != nil {
-		panic(err)
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
 	}
 }
 
