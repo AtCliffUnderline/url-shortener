@@ -27,11 +27,6 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 	respBody, err := ioutil.ReadAll(resp.Body)
 	require.NoError(t, err)
 
-	defer func() {
-		err = resp.Body.Close()
-		assert.NoError(t, err)
-	}()
-
 	return resp, string(respBody)
 }
 
@@ -44,18 +39,34 @@ func TestRouter(t *testing.T) {
 	// Testing if wrong method on existing path returns Bad Request
 	resp, _ := testRequest(t, server, http.MethodPatch, "/", strings.NewReader(""))
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	// Testing if existing method on wrong path returns 400
 	resp, _ = testRequest(t, server, http.MethodPost, "/route-not-exists", strings.NewReader(""))
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	// Testing symbolic IDs
 	resp, _ = testRequest(t, server, http.MethodGet, "/id", strings.NewReader(""))
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	// Testing unexciting ID
 	resp, _ = testRequest(t, server, http.MethodGet, "/0", strings.NewReader(""))
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	// Testing successful scenario
 	resp, body := testRequest(t, server, http.MethodPost, "/", strings.NewReader("https://google.com"))
@@ -65,4 +76,8 @@ func TestRouter(t *testing.T) {
 	resp, _ = testRequest(t, server, http.MethodGet, "/0", strings.NewReader(""))
 	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
 	assert.Equal(t, "https://google.com", resp.Header.Get("Location"))
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 }
