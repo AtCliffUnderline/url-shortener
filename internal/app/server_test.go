@@ -63,10 +63,6 @@ func TestRouter(t *testing.T) {
 	// Testing unexciting ID
 	resp, _ = testRequest(t, server, http.MethodGet, "/0", strings.NewReader(""))
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	defer func() {
-		err := resp.Body.Close()
-		assert.NoError(t, err)
-	}()
 
 	// Testing successful scenario
 	resp, body := testRequest(t, server, http.MethodPost, "/", strings.NewReader("https://google.com"))
