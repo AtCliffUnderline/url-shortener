@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -52,14 +53,28 @@ func TestRouter(t *testing.T) {
 	resp, _ = testRequest(t, server, http.MethodGet, "/0", strings.NewReader(""))
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
-	// Testing successful scenario
-	resp, body := testRequest(t, server, http.MethodPost, "/", strings.NewReader("https://google.com"))
+	// Test JSON route bad request
+	resp, _ = testRequest(t, server, http.MethodPost, "/api/shorten", strings.NewReader("{}"))
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	// Test JSON route success
+	resp, body := testRequest(t, server, http.MethodPost, "/api/shorten", strings.NewReader("{\"url\":\"https://google.com\"}"))
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 	assert.Contains(t, body, "/0")
 
-	resp, _ = testRequest(t, server, http.MethodGet, "/0", strings.NewReader(""))
-	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
-	assert.Equal(t, "https://google.com", resp.Header.Get("Location"))
+	// Testing successful scenario
+	resp, body = testRequest(t, server, http.MethodPost, "/", strings.NewReader("https://google.com"))
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	assert.Contains(t, body, "/1")
+
+	for i := 0; i <= 1; i++ {
+		var path strings.Builder
+		path.WriteString("/")
+		path.WriteString(strconv.Itoa(i))
+		resp, _ = testRequest(t, server, http.MethodGet, path.String(), strings.NewReader(""))
+		assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
+		assert.Equal(t, "https://google.com", resp.Header.Get("Location"))
+	}
 	defer func() {
 		err := resp.Body.Close()
 		assert.NoError(t, err)
