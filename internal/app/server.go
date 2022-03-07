@@ -11,6 +11,7 @@ import (
 )
 
 type HandlersCollection struct {
+	Config  ApplicationConfig
 	Storage RouteStorage
 }
 
@@ -23,9 +24,12 @@ type URLShortenerResponse struct {
 }
 
 func StartServer() {
-	handlerCollection := &HandlersCollection{Storage: &DefaultRouteStorage{}}
+	handlerCollection := &HandlersCollection{
+		Storage: &DefaultRouteStorage{},
+		Config:  getConfig(),
+	}
 	router := handlerCollection.CreateRouter()
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(handlerCollection.Config.ServerAddress, router))
 }
 
 func (h *HandlersCollection) CreateRouter() *chi.Mux {
@@ -53,7 +57,8 @@ func (h *HandlersCollection) alternativeShortURLHandler(w http.ResponseWriter, r
 	}
 	id := h.Storage.ShortRoute(request.URL)
 	var newURL strings.Builder
-	newURL.WriteString("http://localhost:8080/")
+	newURL.WriteString(h.Config.BaseURL)
+	newURL.WriteString("/")
 	newURL.WriteString(strconv.Itoa(id))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -78,7 +83,8 @@ func (h *HandlersCollection) shortURLHandler(w http.ResponseWriter, r *http.Requ
 	}
 	id := h.Storage.ShortRoute(string(b))
 	var newURL strings.Builder
-	newURL.WriteString("http://localhost:8080/")
+	newURL.WriteString(h.Config.BaseURL)
+	newURL.WriteString("/")
 	newURL.WriteString(strconv.Itoa(id))
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(newURL.String()))
