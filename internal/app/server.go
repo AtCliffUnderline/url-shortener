@@ -14,11 +14,11 @@ type HandlersCollection struct {
 	Storage RouteStorage
 }
 
-type UrlShortenerRequest struct {
+type URLShortenerRequest struct {
 	URL string `json:"url"`
 }
 
-type UrlShortenerResponse struct {
+type URLShortenerResponse struct {
 	URL string `json:"result"`
 }
 
@@ -34,14 +34,14 @@ func (h *HandlersCollection) CreateRouter() *chi.Mux {
 		http.Error(w, "Method not found", http.StatusBadRequest)
 	})
 	router.Post("/", h.shortURLHandler)
-	router.Post("/api/shorten", h.alternativeShortUrlHandler)
+	router.Post("/api/shorten", h.alternativeShortURLHandler)
 	router.Get("/{id}", h.retrieveShortURLHandler)
 
 	return router
 }
 
-func (h *HandlersCollection) alternativeShortUrlHandler(w http.ResponseWriter, r *http.Request) {
-	var request UrlShortenerRequest
+func (h *HandlersCollection) alternativeShortURLHandler(w http.ResponseWriter, r *http.Request) {
+	var request URLShortenerRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -55,9 +55,9 @@ func (h *HandlersCollection) alternativeShortUrlHandler(w http.ResponseWriter, r
 	var newURL strings.Builder
 	newURL.WriteString("http://localhost:8080/")
 	newURL.WriteString(strconv.Itoa(id))
-	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
-	result := UrlShortenerResponse{URL: newURL.String()}
+	w.WriteHeader(http.StatusCreated)
+	result := URLShortenerResponse{URL: newURL.String()}
 	response, err := json.Marshal(result)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)

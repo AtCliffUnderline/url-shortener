@@ -60,6 +60,7 @@ func TestRouter(t *testing.T) {
 	// Test JSON route success
 	resp, body := testRequest(t, server, http.MethodPost, "/api/shorten", strings.NewReader("{\"url\":\"https://google.com\"}"))
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	assert.Equal(t, "application/json", resp.Header.Get("Content-type"))
 	assert.Contains(t, body, "/0")
 
 	// Testing successful scenario
