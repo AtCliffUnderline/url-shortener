@@ -6,8 +6,8 @@ import (
 )
 
 type ApplicationConfig struct {
-	ServerAddress string `env:"SERVER_ADDRESS"`
-	BaseURL       string `env:"BASE_URL"`
+	ServerAddress string `env:"SERVER_ADDRESS" envDefault:":8080"`
+	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 }
 
 func getConfig() ApplicationConfig {
@@ -15,12 +15,6 @@ func getConfig() ApplicationConfig {
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
-	}
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = "http://localhost:8080"
-	}
-	if cfg.ServerAddress == "" {
-		cfg.ServerAddress = ":8080"
 	}
 
 	return cfg
