@@ -16,6 +16,12 @@ func getConfig() ApplicationConfig {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = "http://localhost:8080"
+	}
+	if cfg.ServerAddress == "" {
+		cfg.ServerAddress = ":8080"
+	}
 
 	return cfg
 }
