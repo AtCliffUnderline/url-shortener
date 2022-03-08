@@ -65,6 +65,10 @@ func (h *HandlersCollection) alternativeShortURLHandler(w http.ResponseWriter, r
 		return
 	}
 	id, err := h.Storage.ShortRoute(request.URL)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	var newURL strings.Builder
 	newURL.WriteString(h.Config.BaseURL)
 	newURL.WriteString("/")
@@ -91,6 +95,10 @@ func (h *HandlersCollection) shortURLHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	id, err := h.Storage.ShortRoute(string(b))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	var newURL strings.Builder
 	newURL.WriteString(h.Config.BaseURL)
 	newURL.WriteString("/")
