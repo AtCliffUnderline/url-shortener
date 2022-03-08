@@ -24,9 +24,18 @@ type URLShortenerResponse struct {
 }
 
 func StartServer() {
+	config := getConfig()
 	handlerCollection := &HandlersCollection{
 		Storage: &DefaultRouteStorage{},
-		Config:  getConfig(),
+		Config:  config,
+	}
+	if config.StoragePath != "" {
+		handlerCollection = &HandlersCollection{
+			Storage: &FileRouteStorage{
+				FilePath: config.StoragePath,
+			},
+			Config: getConfig(),
+		}
 	}
 	router := handlerCollection.CreateRouter()
 	log.Fatal(http.ListenAndServe(handlerCollection.Config.ServerAddress, router))
@@ -55,7 +64,7 @@ func (h *HandlersCollection) alternativeShortURLHandler(w http.ResponseWriter, r
 		http.Error(w, "No Url provided", http.StatusBadRequest)
 		return
 	}
-	id := h.Storage.ShortRoute(request.URL)
+	id, err := h.Storage.ShortRoute(request.URL)
 	var newURL strings.Builder
 	newURL.WriteString(h.Config.BaseURL)
 	newURL.WriteString("/")
@@ -81,7 +90,7 @@ func (h *HandlersCollection) shortURLHandler(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
-	id := h.Storage.ShortRoute(string(b))
+	id, err := h.Storage.ShortRoute(string(b))
 	var newURL strings.Builder
 	newURL.WriteString(h.Config.BaseURL)
 	newURL.WriteString("/")

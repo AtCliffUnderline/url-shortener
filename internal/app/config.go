@@ -8,6 +8,7 @@ import (
 type ApplicationConfig struct {
 	ServerAddress string `env:"SERVER_ADDRESS" envDefault:":8080"`
 	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	StoragePath   string `env:"FILE_STORAGE_PATH" envDefault:"./asd.txt"`
 }
 
 func getConfig() ApplicationConfig {
