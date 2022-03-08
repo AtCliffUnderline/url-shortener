@@ -11,11 +11,20 @@ type ApplicationConfig struct {
 	StoragePath   string `env:"FILE_STORAGE_PATH"`
 }
 
-func getConfig() ApplicationConfig {
+func getMergedConfig(cliConfig ApplicationConfig) ApplicationConfig {
 	var cfg ApplicationConfig
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if cliConfig.ServerAddress != "" {
+		cfg.ServerAddress = cliConfig.ServerAddress
+	}
+	if cliConfig.BaseURL != "" {
+		cfg.BaseURL = cliConfig.BaseURL
+	}
+	if cliConfig.StoragePath != "" {
+		cfg.StoragePath = cliConfig.StoragePath
 	}
 
 	return cfg
