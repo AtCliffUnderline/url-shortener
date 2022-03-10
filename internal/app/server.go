@@ -23,8 +23,7 @@ type URLShortenerResponse struct {
 	URL string `json:"result"`
 }
 
-func StartServer(flagConfig ApplicationConfig) {
-	config := getMergedConfig(flagConfig)
+func StartServer(config ApplicationConfig) {
 	handlerCollection := &HandlersCollection{
 		Storage: &DefaultRouteStorage{},
 		Config:  config,
@@ -34,7 +33,7 @@ func StartServer(flagConfig ApplicationConfig) {
 			Storage: &FileRouteStorage{
 				FilePath: config.StoragePath,
 			},
-			Config: getMergedConfig(flagConfig),
+			Config: config,
 		}
 	}
 	router := handlerCollection.CreateRouter()

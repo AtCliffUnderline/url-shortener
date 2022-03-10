@@ -1,7 +1,9 @@
 package app
 
 import (
+	"flag"
 	"github.com/caarlos0/env/v6"
+	"github.com/imdario/mergo"
 	"log"
 )
 
@@ -11,21 +13,22 @@ type ApplicationConfig struct {
 	StoragePath   string `env:"FILE_STORAGE_PATH"`
 }
 
-func getMergedConfig(cliConfig ApplicationConfig) ApplicationConfig {
-	var cfg ApplicationConfig
-	err := env.Parse(&cfg)
+func CreateConfig() ApplicationConfig {
+	var config = ApplicationConfig{}
+	var flagConfig = ApplicationConfig{}
+
+	err := env.Parse(&config)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if cliConfig.ServerAddress != "" {
-		cfg.ServerAddress = cliConfig.ServerAddress
-	}
-	if cliConfig.BaseURL != "" {
-		cfg.BaseURL = cliConfig.BaseURL
-	}
-	if cliConfig.StoragePath != "" {
-		cfg.StoragePath = cliConfig.StoragePath
+	flag.StringVar(&flagConfig.ServerAddress, "a", "", "Server address to run on")
+	flag.StringVar(&flagConfig.BaseURL, "b", "", "Base URL for shortened links")
+	flag.StringVar(&flagConfig.StoragePath, "f", "", "File storage path")
+	flag.Parse()
+
+	if err := mergo.Merge(&config, flagConfig, mergo.WithOverride); err != nil {
+		panic(err)
 	}
 
-	return cfg
+	return config
 }
