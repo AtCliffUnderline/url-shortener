@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 )
 
@@ -19,7 +20,7 @@ func (storage FileRouteStorage) ShortRoute(fullRoute string) (int, error) {
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 	}(file)
 	scanner := bufio.NewScanner(file)
