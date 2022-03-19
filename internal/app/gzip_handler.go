@@ -3,7 +3,6 @@ package app
 import (
 	"compress/gzip"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -40,9 +39,26 @@ func gzipHandle(next http.Handler) http.Handler {
 		defer func(gz *gzip.Writer) {
 			err := gz.Close()
 			if err != nil {
-				log.Fatalf(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 		}(gz)
+
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			gz, err := gzip.NewReader(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			r.Body = gz
+			defer func(gz *gzip.Reader) {
+				err := gz.Close()
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}(gz)
+		}
 
 		w.Header().Set("Content-Encoding", "gzip")
 		// передаём обработчику страницы переменную типа gzipWriter для вывода данных
