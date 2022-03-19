@@ -37,7 +37,7 @@ func StartServer(config ApplicationConfig) {
 		}
 	}
 	router := handlerCollection.CreateRouter()
-	log.Fatal(http.ListenAndServe(handlerCollection.Config.ServerAddress, router))
+	log.Fatal(http.ListenAndServe(handlerCollection.Config.ServerAddress, gzipHandle(router)))
 }
 
 func (h *HandlersCollection) CreateRouter() *chi.Mux {
