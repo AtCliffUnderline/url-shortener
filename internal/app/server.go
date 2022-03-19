@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"io/ioutil"
 	"log"
@@ -10,13 +11,33 @@ import (
 )
 
 type HandlersCollection struct {
+	Config  ApplicationConfig
 	Storage RouteStorage
 }
 
-func StartServer() {
-	handlerCollection := &HandlersCollection{Storage: &DefaultRouteStorage{}}
+type URLShortenerRequest struct {
+	URL string `json:"url"`
+}
+
+type URLShortenerResponse struct {
+	URL string `json:"result"`
+}
+
+func StartServer(config ApplicationConfig) {
+	handlerCollection := &HandlersCollection{
+		Storage: &DefaultRouteStorage{},
+		Config:  config,
+	}
+	if config.StoragePath != "" {
+		handlerCollection = &HandlersCollection{
+			Storage: &FileRouteStorage{
+				FilePath: config.StoragePath,
+			},
+			Config: config,
+		}
+	}
 	router := handlerCollection.CreateRouter()
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(handlerCollection.Config.ServerAddress, router))
 }
 
 func (h *HandlersCollection) CreateRouter() *chi.Mux {
@@ -25,9 +46,45 @@ func (h *HandlersCollection) CreateRouter() *chi.Mux {
 		http.Error(w, "Method not found", http.StatusBadRequest)
 	})
 	router.Post("/", h.shortURLHandler)
+	router.Post("/api/shorten", h.alternativeShortURLHandler)
 	router.Get("/{id}", h.retrieveShortURLHandler)
 
 	return router
+}
+
+func (h *HandlersCollection) alternativeShortURLHandler(w http.ResponseWriter, r *http.Request) {
+	var request URLShortenerRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if request.URL == "" {
+		http.Error(w, "No Url provided", http.StatusBadRequest)
+		return
+	}
+	id, err := h.Storage.ShortRoute(request.URL)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var newURL strings.Builder
+	newURL.WriteString(h.Config.BaseURL)
+	newURL.WriteString("/")
+	newURL.WriteString(strconv.Itoa(id))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	result := URLShortenerResponse{URL: newURL.String()}
+	response, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+	_, err = w.Write(response)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *HandlersCollection) shortURLHandler(w http.ResponseWriter, r *http.Request) {
@@ -36,9 +93,14 @@ func (h *HandlersCollection) shortURLHandler(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
-	id := h.Storage.ShortRoute(string(b))
+	id, err := h.Storage.ShortRoute(string(b))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	var newURL strings.Builder
-	newURL.WriteString("http://localhost:8080/")
+	newURL.WriteString(h.Config.BaseURL)
+	newURL.WriteString("/")
 	newURL.WriteString(strconv.Itoa(id))
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(newURL.String()))

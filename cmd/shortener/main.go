@@ -1,7 +1,10 @@
 package main
 
-import "github.com/AtCliffUnderline/url-shortener/internal/app"
+import (
+	"github.com/AtCliffUnderline/url-shortener/internal/app"
+)
 
 func main() {
-	app.StartServer()
+	config := app.CreateConfig()
+	app.StartServer(config)
 }
