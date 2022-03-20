@@ -25,7 +25,7 @@ func CreateConfig() ApplicationConfig {
 	flag.StringVar(&flagConfig.ServerAddress, "a", "", "Server address to run on")
 	flag.StringVar(&flagConfig.BaseURL, "b", "", "Base URL for shortened links")
 	flag.StringVar(&flagConfig.StoragePath, "f", "", "File storage path")
-	flag.StringVar(&flagConfig.DatabaseDSN, "database-dsn", "", "Database DSN")
+	flag.StringVar(&flagConfig.DatabaseDSN, "d", "", "Database DSN")
 	flag.Parse()
 
 	if err := mergo.Merge(&config, flagConfig, mergo.WithOverride); err != nil {
