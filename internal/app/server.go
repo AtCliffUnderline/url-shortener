@@ -143,6 +143,7 @@ func (service *ShortenerService) getUserURLs(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(response)
 	if err != nil {
