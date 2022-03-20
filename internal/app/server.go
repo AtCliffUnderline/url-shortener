@@ -2,6 +2,8 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
+	"github.com/AtCliffUnderline/url-shortener/internal/app/models"
 	"github.com/go-chi/chi/v5"
 	"io/ioutil"
 	"log"
@@ -10,9 +12,10 @@ import (
 	"strings"
 )
 
-type HandlersCollection struct {
-	Config  ApplicationConfig
-	Storage RouteStorage
+type ShortenerService struct {
+	Config         ApplicationConfig
+	Storage        RouteStorage
+	UserRepository UserRepository
 }
 
 type URLShortenerRequest struct {
@@ -24,35 +27,39 @@ type URLShortenerResponse struct {
 }
 
 func StartServer(config ApplicationConfig) {
-	handlerCollection := &HandlersCollection{
+	service := &ShortenerService{
 		Storage: &DefaultRouteStorage{},
 		Config:  config,
 	}
 	if config.StoragePath != "" {
-		handlerCollection = &HandlersCollection{
+		service = &ShortenerService{
 			Storage: &FileRouteStorage{
 				FilePath: config.StoragePath,
 			},
 			Config: config,
 		}
 	}
-	router := handlerCollection.CreateRouter()
-	log.Fatal(http.ListenAndServe(handlerCollection.Config.ServerAddress, gzipHandle(router)))
+	service.UserRepository = UserRepository{}
+	router := service.CreateRouter()
+	log.Fatal(http.ListenAndServe(service.Config.ServerAddress, router))
 }
 
-func (h *HandlersCollection) CreateRouter() *chi.Mux {
+func (service *ShortenerService) CreateRouter() *chi.Mux {
 	router := chi.NewRouter()
+	router.Use(gzipHandle)
+	router.Use(service.authMiddleware)
 	router.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not found", http.StatusBadRequest)
 	})
-	router.Post("/", h.shortURLHandler)
-	router.Post("/api/shorten", h.alternativeShortURLHandler)
-	router.Get("/{id}", h.retrieveShortURLHandler)
+	router.Post("/", service.shortURLHandler)
+	router.Post("/api/shorten", service.alternativeShortURLHandler)
+	router.Get("/{id}", service.retrieveShortURLHandler)
+	router.Get("/api/user/urls", service.getUserURLs)
 
 	return router
 }
 
-func (h *HandlersCollection) alternativeShortURLHandler(w http.ResponseWriter, r *http.Request) {
+func (service *ShortenerService) alternativeShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	var request URLShortenerRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -63,23 +70,28 @@ func (h *HandlersCollection) alternativeShortURLHandler(w http.ResponseWriter, r
 		http.Error(w, "No Url provided", http.StatusBadRequest)
 		return
 	}
-	id, err := h.Storage.ShortRoute(request.URL)
+	id, err := service.Storage.ShortRoute(request.URL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	var newURL strings.Builder
-	newURL.WriteString(h.Config.BaseURL)
+	newURL.WriteString(service.Config.BaseURL)
 	newURL.WriteString("/")
 	newURL.WriteString(strconv.Itoa(id))
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	err = service.saveRouteForUser(r, newURL.String(), request.URL)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	result := URLShortenerResponse{URL: newURL.String()}
 	response, err := json.Marshal(result)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(response)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
@@ -87,21 +99,26 @@ func (h *HandlersCollection) alternativeShortURLHandler(w http.ResponseWriter, r
 	}
 }
 
-func (h *HandlersCollection) shortURLHandler(w http.ResponseWriter, r *http.Request) {
+func (service *ShortenerService) shortURLHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
-	id, err := h.Storage.ShortRoute(string(b))
+	id, err := service.Storage.ShortRoute(string(b))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	var newURL strings.Builder
-	newURL.WriteString(h.Config.BaseURL)
+	newURL.WriteString(service.Config.BaseURL)
 	newURL.WriteString("/")
 	newURL.WriteString(strconv.Itoa(id))
+	err = service.saveRouteForUser(r, newURL.String(), string(b))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(newURL.String()))
 	if err != nil {
@@ -110,16 +127,55 @@ func (h *HandlersCollection) shortURLHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (h *HandlersCollection) retrieveShortURLHandler(w http.ResponseWriter, r *http.Request) {
+func (service *ShortenerService) getUserURLs(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, isOk := ctx.Value("user").(models.User)
+	if !isOk {
+		http.Error(w, "unable to retrieve user", http.StatusInternalServerError)
+	}
+	routes := service.UserRepository.GetUserRoutes(user)
+	if routes == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	response, err := json.Marshal(routes)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(response)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (service *ShortenerService) retrieveShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	pathID := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(pathID)
 	if err != nil {
 		http.Error(w, "Bad ID", http.StatusBadRequest)
 	}
-	route, err := h.Storage.GetRouteByID(id)
+	route, err := service.Storage.GetRouteByID(id)
 	if err != nil {
 		http.Error(w, "Bad ID", http.StatusBadRequest)
 	}
 	w.Header().Set("Location", route)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (service *ShortenerService) saveRouteForUser(r *http.Request, newRoute string, originalRoute string) error {
+	ctx := r.Context()
+	user, isOk := ctx.Value("user").(models.User)
+	if !isOk {
+		return errors.New("unable to save route")
+	}
+	route := UserRoute{
+		ShortUrl:    newRoute,
+		OriginalUrl: originalRoute,
+	}
+	service.UserRepository.AddRouteForUser(user, route)
+
+	return nil
 }
