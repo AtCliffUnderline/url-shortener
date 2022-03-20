@@ -29,7 +29,7 @@ func (db *BaseDB) Ping() error {
 	if db.connection == nil {
 		return errors.New("no connection established")
 	}
-	_, err := db.connection.Exec(context.Background(), "SELECT 1")
+	_, err := db.connection.Query(context.Background(), "SELECT 1")
 	if err != nil {
 		return err
 	}
