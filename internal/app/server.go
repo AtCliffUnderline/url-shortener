@@ -40,6 +40,14 @@ func StartServer(config ApplicationConfig, db BaseDB) {
 			Config: config,
 		}
 	}
+	if db.IsConnectionEstablished() {
+		service = &ShortenerService{
+			Storage: &DatabaseRouteStorage{
+				baseDB: &db,
+			},
+			Config: config,
+		}
+	}
 	service.UserRepository = UserRepository{}
 	service.Database = db
 	router := service.CreateRouter()
