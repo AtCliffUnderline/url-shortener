@@ -5,11 +5,13 @@ import (
 	"net/http"
 )
 
-const COOKIE_NAME string = "auth-token"
+const CookieName string = "auth-token"
+
+type UserContext struct{}
 
 func (service *ShortenerService) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(COOKIE_NAME)
+		cookie, err := r.Cookie(CookieName)
 		if err != http.ErrNoCookie {
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -19,17 +21,17 @@ func (service *ShortenerService) authMiddleware(next http.Handler) http.Handler 
 			user, err := service.UserRepository.GetUserByToken(cookie.Value)
 			// Если логин прошел успешно
 			if err == nil {
-				ctx := context.WithValue(r.Context(), "user", user)
+				ctx := context.WithValue(r.Context(), UserContext{}, user)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 		}
 		user := service.UserRepository.CreateUser()
 		http.SetCookie(w, &http.Cookie{
-			Name:  COOKIE_NAME,
+			Name:  CookieName,
 			Value: user.Token,
 		})
-		ctx := context.WithValue(r.Context(), "user", user)
+		ctx := context.WithValue(r.Context(), UserContext{}, user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

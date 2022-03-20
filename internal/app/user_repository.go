@@ -14,16 +14,16 @@ var userRoutesMap = map[int][]UserRoute{}
 type UserRepository struct {
 }
 type UserRoute struct {
-	ShortUrl    string `json:"short_url"`
-	OriginalUrl string `json:"original_url"`
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
 }
 
 func (repo *UserRepository) AddRouteForUser(user models.User, route UserRoute) {
-	userRoutesMap[user.Id] = append(userRoutesMap[user.Id], route)
+	userRoutesMap[user.ID] = append(userRoutesMap[user.ID], route)
 }
 
 func (repo *UserRepository) GetUserRoutes(user models.User) []UserRoute {
-	return userRoutesMap[user.Id]
+	return userRoutesMap[user.ID]
 }
 
 func (repo *UserRepository) CreateUser() models.User {
@@ -31,7 +31,7 @@ func (repo *UserRepository) CreateUser() models.User {
 	hash := sha256.Sum256([]byte(strconv.Itoa(id)))
 	token := hex.EncodeToString(hash[:])
 	user := models.User{
-		Id:    id,
+		ID:    id,
 		Token: token,
 	}
 	tokenUserLink[token] = user
@@ -44,5 +44,5 @@ func (repo *UserRepository) GetUserByToken(token string) (models.User, error) {
 		return user, nil
 	}
 
-	return models.User{}, errors.New("User with such token not found")
+	return models.User{}, errors.New("user with such token not found")
 }

@@ -52,13 +52,7 @@ func gzipHandle(next http.Handler) http.Handler {
 			}
 			return
 		}
-		defer func(gz *gzip.Writer) {
-			err := gz.Close()
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}(gz)
+		defer gz.Close()
 
 		w.Header().Set("Content-Encoding", "gzip")
 		// передаём обработчику страницы переменную типа gzipWriter для вывода данных

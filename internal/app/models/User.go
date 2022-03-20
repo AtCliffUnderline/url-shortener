@@ -1,6 +1,6 @@
 package models
 
 type User struct {
-	Id    int
+	ID    int
 	Token string
 }

@@ -129,7 +129,7 @@ func (service *ShortenerService) shortURLHandler(w http.ResponseWriter, r *http.
 
 func (service *ShortenerService) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user, isOk := ctx.Value("user").(models.User)
+	user, isOk := ctx.Value(UserContext{}).(models.User)
 	if !isOk {
 		http.Error(w, "unable to retrieve user", http.StatusInternalServerError)
 	}
@@ -167,13 +167,13 @@ func (service *ShortenerService) retrieveShortURLHandler(w http.ResponseWriter, 
 
 func (service *ShortenerService) saveRouteForUser(r *http.Request, newRoute string, originalRoute string) error {
 	ctx := r.Context()
-	user, isOk := ctx.Value("user").(models.User)
+	user, isOk := ctx.Value(UserContext{}).(models.User)
 	if !isOk {
 		return errors.New("unable to save route")
 	}
 	route := UserRoute{
-		ShortUrl:    newRoute,
-		OriginalUrl: originalRoute,
+		ShortURL:    newRoute,
+		OriginalURL: originalRoute,
 	}
 	service.UserRepository.AddRouteForUser(user, route)
 
