@@ -11,6 +11,7 @@ type ApplicationConfig struct {
 	ServerAddress string `env:"SERVER_ADDRESS" envDefault:":8080"`
 	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 	StoragePath   string `env:"FILE_STORAGE_PATH"`
+	DatabaseDSN   string `env:"DATABASE_DSN" envDefault:"postgres://user:password@localhost:5432/golang"`
 }
 
 func CreateConfig() ApplicationConfig {
@@ -24,7 +25,8 @@ func CreateConfig() ApplicationConfig {
 	flag.StringVar(&flagConfig.ServerAddress, "a", "", "Server address to run on")
 	flag.StringVar(&flagConfig.BaseURL, "b", "", "Base URL for shortened links")
 	flag.StringVar(&flagConfig.StoragePath, "f", "", "File storage path")
-	flag.Parse()
+	flag.StringVar(&flagConfig.StoragePath, "d", "", "Database DSN")
+	//flag.Parse()
 
 	if err := mergo.Merge(&config, flagConfig, mergo.WithOverride); err != nil {
 		panic(err)

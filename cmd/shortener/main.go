@@ -6,5 +6,8 @@ import (
 
 func main() {
 	config := app.CreateConfig()
-	app.StartServer(config)
+	db := app.BaseDB{}
+	db.SetupConnection(config.DatabaseDSN)
+	defer db.CloseConnection()
+	app.StartServer(config, db)
 }

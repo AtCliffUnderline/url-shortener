@@ -16,6 +16,7 @@ type ShortenerService struct {
 	Config         ApplicationConfig
 	Storage        RouteStorage
 	UserRepository UserRepository
+	Database       BaseDB
 }
 
 type URLShortenerRequest struct {
@@ -26,7 +27,7 @@ type URLShortenerResponse struct {
 	URL string `json:"result"`
 }
 
-func StartServer(config ApplicationConfig) {
+func StartServer(config ApplicationConfig, db BaseDB) {
 	service := &ShortenerService{
 		Storage: &DefaultRouteStorage{},
 		Config:  config,
@@ -40,6 +41,7 @@ func StartServer(config ApplicationConfig) {
 		}
 	}
 	service.UserRepository = UserRepository{}
+	service.Database = db
 	router := service.CreateRouter()
 	log.Fatal(http.ListenAndServe(service.Config.ServerAddress, router))
 }
@@ -55,6 +57,7 @@ func (service *ShortenerService) CreateRouter() *chi.Mux {
 	router.Post("/api/shorten", service.alternativeShortURLHandler)
 	router.Get("/{id}", service.retrieveShortURLHandler)
 	router.Get("/api/user/urls", service.getUserURLs)
+	router.Get("/ping", service.pingDatabase)
 
 	return router
 }
@@ -150,6 +153,15 @@ func (service *ShortenerService) getUserURLs(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (service *ShortenerService) pingDatabase(w http.ResponseWriter, _ *http.Request) {
+	err := service.Database.Ping()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (service *ShortenerService) retrieveShortURLHandler(w http.ResponseWriter, r *http.Request) {
