@@ -75,7 +75,7 @@ func (dbStorage *DatabaseRouteStorage) ShortRoute(fullRoute string) (int, error)
 		return 0, err
 	}
 	var id int
-	statement := "INSERT INTO shortened_urls (id, original_url, user_id) VALUES ((SELECT MAX(id) FROM shortened_urls)+1, $1, $2) RETURNING id;"
+	statement := "INSERT INTO shortened_urls (id, original_url, user_id) VALUES ((SELECT coalesce(MAX(id),1) FROM shortened_urls)+1, $1, $2) RETURNING id;"
 	row := tx.QueryRow(context.Background(), statement, fullRoute, 0)
 	err = row.Scan(&id)
 	if err != nil {
