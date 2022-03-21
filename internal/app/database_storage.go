@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-var RouteAlreadyShortened = errors.New("route already shortened")
+var ErrRouteAlreadyShortened = errors.New("route already shortened")
 
 type DatabaseRouteStorage struct {
 	baseDB *BaseDB
@@ -64,7 +64,7 @@ func (dbStorage *DatabaseRouteStorage) SaveBatchRoutes(routes []BatchURLShortene
 func (dbStorage *DatabaseRouteStorage) ShortRoute(fullRoute string) (int, error) {
 	res, err := dbStorage.isRouteAlreadyPresented(fullRoute)
 	if err == nil {
-		return res, RouteAlreadyShortened
+		return res, ErrRouteAlreadyShortened
 	}
 	if !errors.As(err, &pgx.ErrNoRows) {
 		return 0, err

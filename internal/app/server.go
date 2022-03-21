@@ -138,7 +138,7 @@ func (service *ShortenerService) alternativeShortURLHandler(w http.ResponseWrite
 		return
 	}
 	id, err := service.Storage.ShortRoute(request.URL)
-	if errors.As(err, &RouteAlreadyShortened) {
+	if errors.As(err, &ErrRouteAlreadyShortened) {
 		w.WriteHeader(http.StatusConflict)
 	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -175,7 +175,7 @@ func (service *ShortenerService) shortURLHandler(w http.ResponseWriter, r *http.
 		return
 	}
 	id, err := service.Storage.ShortRoute(string(b))
-	if errors.As(err, &RouteAlreadyShortened) {
+	if errors.As(err, &ErrRouteAlreadyShortened) {
 		w.WriteHeader(http.StatusConflict)
 	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
