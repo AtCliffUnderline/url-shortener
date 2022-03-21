@@ -82,3 +82,13 @@ func (storage FileRouteStorage) GetRouteByID(id int) (string, error) {
 
 	return "", errors.New("no route with this ID found")
 }
+
+func (storage FileRouteStorage) SaveBatchRoutes(routes []BatchURLShortenerRequest) ([]BatchURLShortenerURLIDs, error) {
+	var result []BatchURLShortenerURLIDs
+	for _, URLToShort := range routes {
+		id, _ := storage.ShortRoute(URLToShort.URL)
+		result = append(result, BatchURLShortenerURLIDs{ID: id, CorrelationID: URLToShort.ID, OriginalURL: URLToShort.URL})
+	}
+
+	return result, nil
+}

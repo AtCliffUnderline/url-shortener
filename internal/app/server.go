@@ -23,6 +23,22 @@ type URLShortenerRequest struct {
 	URL string `json:"url"`
 }
 
+type BatchURLShortenerRequest struct {
+	ID  string `json:"correlation_id"`
+	URL string `json:"original_url"`
+}
+
+type BatchURLShortenerResponse struct {
+	ID  string `json:"correlation_id"`
+	URL string `json:"short_url"`
+}
+
+type BatchURLShortenerURLIDs struct {
+	ID            int
+	OriginalURL   string
+	CorrelationID string
+}
+
 type URLShortenerResponse struct {
 	URL string `json:"result"`
 }
@@ -63,11 +79,51 @@ func (service *ShortenerService) CreateRouter() *chi.Mux {
 	})
 	router.Post("/", service.shortURLHandler)
 	router.Post("/api/shorten", service.alternativeShortURLHandler)
+	router.Post("/api/shorten/batch", service.batchShortURLHandler)
 	router.Get("/{id}", service.retrieveShortURLHandler)
 	router.Get("/api/user/urls", service.getUserURLs)
 	router.Get("/ping", service.pingDatabase)
 
 	return router
+}
+
+func (service *ShortenerService) batchShortURLHandler(w http.ResponseWriter, r *http.Request) {
+	var shortenedRoutes []BatchURLShortenerResponse
+	var routes []BatchURLShortenerRequest
+	if err := json.NewDecoder(r.Body).Decode(&routes); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	savedRoutes, err := service.Storage.SaveBatchRoutes(routes)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for _, route := range savedRoutes {
+		var newURL strings.Builder
+		newURL.WriteString(service.Config.BaseURL)
+		newURL.WriteString("/")
+		newURL.WriteString(strconv.Itoa(route.ID))
+		shortenedRoutes = append(shortenedRoutes, BatchURLShortenerResponse{URL: newURL.String(), ID: route.CorrelationID})
+		err = service.saveRouteForUser(r, newURL.String(), route.OriginalURL)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	response, err := json.Marshal(shortenedRoutes)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(response)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (service *ShortenerService) alternativeShortURLHandler(w http.ResponseWriter, r *http.Request) {

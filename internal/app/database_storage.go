@@ -1,9 +1,61 @@
 package app
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"github.com/jackc/pgx/v4"
+	"strconv"
+)
 
 type DatabaseRouteStorage struct {
 	baseDB *BaseDB
+}
+
+func (dbStorage *DatabaseRouteStorage) SaveBatchRoutes(routes []BatchURLShortenerRequest) ([]BatchURLShortenerURLIDs, error) {
+	var result []BatchURLShortenerURLIDs
+	tx, err := dbStorage.baseDB.Connection.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		return nil, err
+	}
+
+	var maxId int
+	statement := "SELECT MAX(id) FROM shortened_urls;"
+	row := tx.QueryRow(context.Background(), statement)
+	err = row.Scan(&maxId)
+	if err != nil {
+		err := tx.Rollback(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		return nil, err
+	}
+
+	vals := []interface{}{}
+	statement = "INSERT INTO shortened_urls (id, original_url, user_id) VALUES "
+	for cnt, URLToShort := range routes {
+		maxId = maxId + 1
+		statement += fmt.Sprintf("(%s, %s, %s),", "$"+strconv.Itoa(cnt*3+1), "$"+strconv.Itoa(cnt*3+2), "$"+strconv.Itoa(cnt*3+3))
+		vals = append(vals, maxId, URLToShort.URL, 0)
+		result = append(result, BatchURLShortenerURLIDs{ID: maxId, CorrelationID: URLToShort.ID, OriginalURL: URLToShort.URL})
+	}
+	statement = statement[0 : len(statement)-1]
+	prepared, err := tx.Prepare(context.Background(), "insert", statement)
+	if err != nil {
+		tx.Rollback(context.Background())
+		return nil, err
+	}
+	_, err = tx.Exec(context.Background(), prepared.SQL, vals...)
+	if err != nil {
+		tx.Rollback(context.Background())
+		return nil, err
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		tx.Rollback(context.Background())
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (dbStorage *DatabaseRouteStorage) ShortRoute(fullRoute string) (int, error) {

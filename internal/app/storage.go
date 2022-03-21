@@ -7,6 +7,7 @@ import (
 type RouteStorage interface {
 	ShortRoute(fullRoute string) (int, error)
 	GetRouteByID(id int) (string, error)
+	SaveBatchRoutes(routes []BatchURLShortenerRequest) ([]BatchURLShortenerURLIDs, error)
 }
 
 type ShortenedURL struct {
@@ -32,4 +33,14 @@ func (DefaultRouteStorage) GetRouteByID(id int) (string, error) {
 	}
 
 	return routeMap[id], nil
+}
+
+func (st DefaultRouteStorage) SaveBatchRoutes(routes []BatchURLShortenerRequest) ([]BatchURLShortenerURLIDs, error) {
+	var result []BatchURLShortenerURLIDs
+	for _, URLToShort := range routes {
+		id, _ := st.ShortRoute(URLToShort.URL)
+		result = append(result, BatchURLShortenerURLIDs{ID: id, CorrelationID: URLToShort.ID, OriginalURL: URLToShort.URL})
+	}
+
+	return result, nil
 }
