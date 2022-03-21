@@ -181,7 +181,7 @@ func (service *ShortenerService) shortURLHandler(w http.ResponseWriter, r *http.
 	}
 	id, err := service.Storage.ShortRoute(string(b))
 	log.Println(string(b), id, err)
-	if errors.As(err, &ErrRouteAlreadyShortened) {
+	if errors.Is(err, ErrRouteAlreadyShortened) {
 		httpStatus = http.StatusConflict
 	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
