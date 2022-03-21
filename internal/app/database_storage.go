@@ -18,10 +18,10 @@ func (dbStorage *DatabaseRouteStorage) SaveBatchRoutes(routes []BatchURLShortene
 		return nil, err
 	}
 
-	var maxId int
+	var maxID int
 	statement := "SELECT MAX(id) FROM shortened_urls;"
 	row := tx.QueryRow(context.Background(), statement)
-	err = row.Scan(&maxId)
+	err = row.Scan(&maxID)
 	if err != nil {
 		err := tx.Rollback(context.Background())
 		if err != nil {
@@ -33,10 +33,10 @@ func (dbStorage *DatabaseRouteStorage) SaveBatchRoutes(routes []BatchURLShortene
 	vals := []interface{}{}
 	statement = "INSERT INTO shortened_urls (id, original_url, user_id) VALUES "
 	for cnt, URLToShort := range routes {
-		maxId = maxId + 1
+		maxID = maxID + 1
 		statement += fmt.Sprintf("(%s, %s, %s),", "$"+strconv.Itoa(cnt*3+1), "$"+strconv.Itoa(cnt*3+2), "$"+strconv.Itoa(cnt*3+3))
-		vals = append(vals, maxId, URLToShort.URL, 0)
-		result = append(result, BatchURLShortenerURLIDs{ID: maxId, CorrelationID: URLToShort.ID, OriginalURL: URLToShort.URL})
+		vals = append(vals, maxID, URLToShort.URL, 0)
+		result = append(result, BatchURLShortenerURLIDs{ID: maxID, CorrelationID: URLToShort.ID, OriginalURL: URLToShort.URL})
 	}
 	statement = statement[0 : len(statement)-1]
 	prepared, err := tx.Prepare(context.Background(), "insert", statement)
