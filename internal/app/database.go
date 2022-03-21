@@ -21,6 +21,10 @@ func (db *BaseDB) SetupConnection(dsn string) {
 	if err != nil {
 		db.isPrepared = false
 	}
+	_, err = db.Connection.Exec(context.Background(), "create unique index if not exists shortened_urls_original_url_uindex on shortened_urls (original_url);")
+	if err != nil {
+		db.isPrepared = false
+	}
 	db.isPrepared = true
 }
 

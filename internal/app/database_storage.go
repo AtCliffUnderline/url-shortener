@@ -2,10 +2,13 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v4"
 	"strconv"
 )
+
+var RouteAlreadyShortened = errors.New("route already shortened")
 
 type DatabaseRouteStorage struct {
 	baseDB *BaseDB
@@ -59,10 +62,17 @@ func (dbStorage *DatabaseRouteStorage) SaveBatchRoutes(routes []BatchURLShortene
 }
 
 func (dbStorage *DatabaseRouteStorage) ShortRoute(fullRoute string) (int, error) {
+	res, err := dbStorage.isRouteAlreadyPresented(fullRoute)
+	if err == nil {
+		return res, RouteAlreadyShortened
+	}
+	if !errors.As(err, &pgx.ErrNoRows) {
+		return 0, err
+	}
 	var id int
 	statement := "INSERT INTO shortened_urls (original_url, user_id) VALUES ($1, $2) RETURNING id;"
 	row := dbStorage.baseDB.Connection.QueryRow(context.Background(), statement, fullRoute, 0)
-	err := row.Scan(&id)
+	err = row.Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -80,4 +90,16 @@ func (dbStorage *DatabaseRouteStorage) GetRouteByID(id int) (string, error) {
 	}
 
 	return route, nil
+}
+
+func (dbStorage *DatabaseRouteStorage) isRouteAlreadyPresented(route string) (int, error) {
+	var id int
+	statement := "SELECT id FROM shortened_urls WHERE original_url=$1;"
+	row := dbStorage.baseDB.Connection.QueryRow(context.Background(), statement, route)
+	err := row.Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }
