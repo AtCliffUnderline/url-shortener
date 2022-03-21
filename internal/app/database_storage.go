@@ -66,13 +66,14 @@ func (dbStorage *DatabaseRouteStorage) ShortRoute(fullRoute string) (int, error)
 	if err == nil {
 		return res, ErrRouteAlreadyShortened
 	}
-	if !errors.As(err, &pgx.ErrNoRows) {
+	if !errors.Is(err, pgx.ErrNoRows) {
 		return 0, err
 	}
 	tx, err := dbStorage.baseDB.Connection.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
 	if err != nil {
 		return 0, err
 	}
+	tx.Exec(context.Background(), "SELECT setval('the_primary_key_sequence', (SELECT MAX(id) FROM shortened_urls)+1);")
 	var id int
 	statement := "INSERT INTO shortened_urls (original_url, user_id) VALUES ($1, $2) RETURNING id;"
 	row := tx.QueryRow(context.Background(), statement, fullRoute, 0)
