@@ -128,6 +128,7 @@ func (service *ShortenerService) batchShortURLHandler(w http.ResponseWriter, r *
 
 func (service *ShortenerService) alternativeShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	var request URLShortenerRequest
+	var isHeaderSet bool
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -140,6 +141,7 @@ func (service *ShortenerService) alternativeShortURLHandler(w http.ResponseWrite
 	id, err := service.Storage.ShortRoute(request.URL)
 	if errors.As(err, &ErrRouteAlreadyShortened) {
 		w.WriteHeader(http.StatusConflict)
+		isHeaderSet = true
 	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -160,7 +162,9 @@ func (service *ShortenerService) alternativeShortURLHandler(w http.ResponseWrite
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+	if !isHeaderSet {
+		w.WriteHeader(http.StatusCreated)
+	}
 	_, err = w.Write(response)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
@@ -169,6 +173,8 @@ func (service *ShortenerService) alternativeShortURLHandler(w http.ResponseWrite
 }
 
 func (service *ShortenerService) shortURLHandler(w http.ResponseWriter, r *http.Request) {
+	var isHeaderSet bool
+
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
@@ -176,6 +182,7 @@ func (service *ShortenerService) shortURLHandler(w http.ResponseWriter, r *http.
 	}
 	id, err := service.Storage.ShortRoute(string(b))
 	if errors.As(err, &ErrRouteAlreadyShortened) {
+		isHeaderSet = true
 		w.WriteHeader(http.StatusConflict)
 	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -190,7 +197,9 @@ func (service *ShortenerService) shortURLHandler(w http.ResponseWriter, r *http.
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+	if !isHeaderSet {
+		w.WriteHeader(http.StatusCreated)
+	}
 	_, err = w.Write([]byte(newURL.String()))
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
