@@ -62,6 +62,7 @@ func (dbStorage *DatabaseRouteStorage) SaveBatchRoutes(routes []BatchURLShortene
 }
 
 func (dbStorage *DatabaseRouteStorage) ShortRoute(fullRoute string) (int, error) {
+	dbStorage.baseDB.Connection.Exec(context.Background(), "SELECT setval('the_primary_key_sequence', (SELECT MAX(id) FROM shortened_urls)+1);")
 	res, err := dbStorage.isRouteAlreadyPresented(fullRoute)
 	if err == nil {
 		return res, ErrRouteAlreadyShortened
@@ -73,7 +74,6 @@ func (dbStorage *DatabaseRouteStorage) ShortRoute(fullRoute string) (int, error)
 	if err != nil {
 		return 0, err
 	}
-	tx.Exec(context.Background(), "SELECT setval('the_primary_key_sequence', (SELECT MAX(id) FROM shortened_urls)+1);")
 	var id int
 	statement := "INSERT INTO shortened_urls (original_url, user_id) VALUES ($1, $2) RETURNING id;"
 	row := tx.QueryRow(context.Background(), statement, fullRoute, 0)
