@@ -69,11 +69,21 @@ func (dbStorage *DatabaseRouteStorage) ShortRoute(fullRoute string) (int, error)
 	if !errors.As(err, &pgx.ErrNoRows) {
 		return 0, err
 	}
+	tx, err := dbStorage.baseDB.Connection.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		return 0, err
+	}
 	var id int
 	statement := "INSERT INTO shortened_urls (original_url, user_id) VALUES ($1, $2) RETURNING id;"
-	row := dbStorage.baseDB.Connection.QueryRow(context.Background(), statement, fullRoute, 0)
+	row := tx.QueryRow(context.Background(), statement, fullRoute, 0)
 	err = row.Scan(&id)
 	if err != nil {
+		_ = tx.Rollback(context.Background())
+		return 0, err
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		_ = tx.Rollback(context.Background())
 		return 0, err
 	}
 
