@@ -82,9 +82,30 @@ func (service *ShortenerService) CreateRouter() *chi.Mux {
 	router.Post("/api/shorten/batch", service.batchShortURLHandler)
 	router.Get("/{id}", service.retrieveShortURLHandler)
 	router.Get("/api/user/urls", service.getUserURLs)
+	router.Delete("/api/user/urls", service.deleteUrlHandler)
 	router.Get("/ping", service.pingDatabase)
 
 	return router
+}
+
+func (service *ShortenerService) deleteUrlHandler(w http.ResponseWriter, r *http.Request) {
+	var routeIDs []string
+	if err := json.NewDecoder(r.Body).Decode(&routeIDs); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	user, err := service.getUserFromRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	for _, routeID := range routeIDs {
+		go func(routeID string) {
+			id, _ := strconv.Atoi(routeID)
+			service.Storage.DeleteRouteByIDForUser(id, user.ID)
+		}(routeID)
+	}
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (service *ShortenerService) batchShortURLHandler(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +115,12 @@ func (service *ShortenerService) batchShortURLHandler(w http.ResponseWriter, r *
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	savedRoutes, err := service.Storage.SaveBatchRoutes(routes)
+	user, err := service.getUserFromRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	savedRoutes, err := service.Storage.SaveBatchRoutes(routes, user.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -138,7 +164,12 @@ func (service *ShortenerService) alternativeShortURLHandler(w http.ResponseWrite
 		http.Error(w, "No Url provided", http.StatusBadRequest)
 		return
 	}
-	id, err := service.Storage.ShortRoute(request.URL)
+	user, err := service.getUserFromRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	id, err := service.Storage.ShortRoute(request.URL, user.ID)
 	if errors.Is(err, ErrRouteAlreadyShortened) {
 		httpStatus = http.StatusConflict
 	} else if err != nil {
@@ -179,7 +210,12 @@ func (service *ShortenerService) shortURLHandler(w http.ResponseWriter, r *http.
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
-	id, err := service.Storage.ShortRoute(string(b))
+	user, err := service.getUserFromRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	id, err := service.Storage.ShortRoute(string(b), user.ID)
 	if errors.Is(err, ErrRouteAlreadyShortened) {
 		httpStatus = http.StatusConflict
 	} else if err != nil {
@@ -210,6 +246,7 @@ func (service *ShortenerService) getUserURLs(w http.ResponseWriter, r *http.Requ
 	user, isOk := ctx.Value(UserContext{}).(models.User)
 	if !isOk {
 		http.Error(w, "unable to retrieve user", http.StatusInternalServerError)
+		return
 	}
 	routes := service.UserRepository.GetUserRoutes(user)
 	if routes == nil {
@@ -244,20 +281,25 @@ func (service *ShortenerService) retrieveShortURLHandler(w http.ResponseWriter, 
 	id, err := strconv.Atoi(pathID)
 	if err != nil {
 		http.Error(w, "Bad ID", http.StatusBadRequest)
+		return
 	}
 	route, err := service.Storage.GetRouteByID(id)
+	if errors.Is(err, RouteDeletedError) {
+		http.Error(w, "Gone", http.StatusGone)
+		return
+	}
 	if err != nil {
 		http.Error(w, "Bad ID", http.StatusBadRequest)
+		return
 	}
 	w.Header().Set("Location", route)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func (service *ShortenerService) saveRouteForUser(r *http.Request, newRoute string, originalRoute string) error {
-	ctx := r.Context()
-	user, isOk := ctx.Value(UserContext{}).(models.User)
-	if !isOk {
-		return errors.New("unable to save route")
+	user, err := service.getUserFromRequest(r)
+	if err != nil {
+		return err
 	}
 	route := UserRoute{
 		ShortURL:    newRoute,
@@ -266,4 +308,14 @@ func (service *ShortenerService) saveRouteForUser(r *http.Request, newRoute stri
 	service.UserRepository.AddRouteForUser(user, route)
 
 	return nil
+}
+
+func (service *ShortenerService) getUserFromRequest(r *http.Request) (models.User, error) {
+	ctx := r.Context()
+	user, isOk := ctx.Value(UserContext{}).(models.User)
+	if !isOk {
+		return models.User{}, errors.New("unable to save route")
+	}
+
+	return user, nil
 }

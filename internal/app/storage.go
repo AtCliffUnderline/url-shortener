@@ -4,10 +4,15 @@ import (
 	"errors"
 )
 
+var RouteDeletedError = errors.New("route has been deleted")
+
+const DeletedRoute = "deleted"
+
 type RouteStorage interface {
-	ShortRoute(fullRoute string) (int, error)
+	ShortRoute(fullRoute string, userID int) (int, error)
 	GetRouteByID(id int) (string, error)
-	SaveBatchRoutes(routes []BatchURLShortenerRequest) ([]BatchURLShortenerURLIDs, error)
+	SaveBatchRoutes(routes []BatchURLShortenerRequest, userID int) ([]BatchURLShortenerURLIDs, error)
+	DeleteRouteByIDForUser(routeID int, userID int) error
 }
 
 type ShortenedURL struct {
@@ -20,7 +25,13 @@ type DefaultRouteStorage struct {
 
 var routeMap = map[int]string{}
 
-func (DefaultRouteStorage) ShortRoute(fullRoute string) (int, error) {
+func (DefaultRouteStorage) DeleteRouteByIDForUser(routeID int, _ int) error {
+	routeMap[routeID] = DeletedRoute
+
+	return nil
+}
+
+func (DefaultRouteStorage) ShortRoute(fullRoute string, _ int) (int, error) {
 	id := len(routeMap)
 	routeMap[id] = fullRoute
 
@@ -32,13 +43,17 @@ func (DefaultRouteStorage) GetRouteByID(id int) (string, error) {
 		return "", errors.New("no route with this ID found")
 	}
 
+	if routeMap[id] == DeletedRoute {
+		return "", RouteDeletedError
+	}
+
 	return routeMap[id], nil
 }
 
-func (st DefaultRouteStorage) SaveBatchRoutes(routes []BatchURLShortenerRequest) ([]BatchURLShortenerURLIDs, error) {
+func (st DefaultRouteStorage) SaveBatchRoutes(routes []BatchURLShortenerRequest, userID int) ([]BatchURLShortenerURLIDs, error) {
 	var result []BatchURLShortenerURLIDs
 	for _, URLToShort := range routes {
-		id, _ := st.ShortRoute(URLToShort.URL)
+		id, _ := st.ShortRoute(URLToShort.URL, userID)
 		result = append(result, BatchURLShortenerURLIDs{ID: id, CorrelationID: URLToShort.ID, OriginalURL: URLToShort.URL})
 	}
 

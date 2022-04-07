@@ -17,7 +17,7 @@ func (db *BaseDB) SetupConnection(dsn string) {
 		return
 	}
 	db.Connection = conn
-	_, err = db.Connection.Exec(context.Background(), "create table shortened_urls (id serial constraint table_name_pk primary key, original_url varchar(2048) not null, user_id int not null);")
+	_, err = db.Connection.Exec(context.Background(), "create table shortened_urls (id serial constraint table_name_pk primary key, original_url varchar(2048) not null, user_id int not null, is_deleted boolean default false not null);")
 	if err != nil {
 		db.isPrepared = false
 	}
