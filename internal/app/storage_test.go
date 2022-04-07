@@ -9,7 +9,7 @@ import (
 func TestStorage(t *testing.T) {
 	storage := app.DefaultRouteStorage{}
 	t.Run("add to storage and read successfully", func(t *testing.T) {
-		id, err := storage.ShortRoute("some route")
+		id, err := storage.ShortRoute("some route", 0)
 		assert.NoError(t, err)
 		route, err := storage.GetRouteByID(id)
 		assert.NoError(t, err)
