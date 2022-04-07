@@ -114,8 +114,8 @@ func (dbStorage *DatabaseRouteStorage) GetRouteByID(id int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if route.isDeleted == true {
-		return "", RouteDeletedError
+	if route.isDeleted {
+		return "", ErrRouteDeleted
 	}
 
 	return route.Route, nil

@@ -82,13 +82,13 @@ func (service *ShortenerService) CreateRouter() *chi.Mux {
 	router.Post("/api/shorten/batch", service.batchShortURLHandler)
 	router.Get("/{id}", service.retrieveShortURLHandler)
 	router.Get("/api/user/urls", service.getUserURLs)
-	router.Delete("/api/user/urls", service.deleteUrlHandler)
+	router.Delete("/api/user/urls", service.deleteURLHandler)
 	router.Get("/ping", service.pingDatabase)
 
 	return router
 }
 
-func (service *ShortenerService) deleteUrlHandler(w http.ResponseWriter, r *http.Request) {
+func (service *ShortenerService) deleteURLHandler(w http.ResponseWriter, r *http.Request) {
 	var routeIDs []string
 	if err := json.NewDecoder(r.Body).Decode(&routeIDs); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -284,7 +284,7 @@ func (service *ShortenerService) retrieveShortURLHandler(w http.ResponseWriter, 
 		return
 	}
 	route, err := service.Storage.GetRouteByID(id)
-	if errors.Is(err, RouteDeletedError) {
+	if errors.Is(err, ErrRouteDeleted) {
 		http.Error(w, "Gone", http.StatusGone)
 		return
 	}

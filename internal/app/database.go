@@ -3,16 +3,16 @@ package app
 import (
 	"context"
 	"errors"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type BaseDB struct {
 	isPrepared bool
-	Connection *pgx.Conn
+	Connection *pgxpool.Pool
 }
 
 func (db *BaseDB) SetupConnection(dsn string) {
-	conn, err := pgx.Connect(context.Background(), dsn)
+	conn, err := pgxpool.Connect(context.Background(), dsn)
 	if err != nil {
 		return
 	}
@@ -33,10 +33,7 @@ func (db *BaseDB) IsConnectionEstablished() bool {
 }
 
 func (db *BaseDB) CloseConnection() {
-	err := db.Connection.Close(context.Background())
-	if err != nil {
-		return
-	}
+	db.Connection.Close()
 }
 
 func (db *BaseDB) Ping() error {

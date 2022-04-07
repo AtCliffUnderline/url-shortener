@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-var RouteDeletedError = errors.New("route has been deleted")
+var ErrRouteDeleted = errors.New("route has been deleted")
 
 const DeletedRoute = "deleted"
 
@@ -44,7 +44,7 @@ func (DefaultRouteStorage) GetRouteByID(id int) (string, error) {
 	}
 
 	if routeMap[id] == DeletedRoute {
-		return "", RouteDeletedError
+		return "", ErrRouteDeleted
 	}
 
 	return routeMap[id], nil
