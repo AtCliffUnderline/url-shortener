@@ -12,7 +12,11 @@ type FileRouteStorage struct {
 	FilePath string
 }
 
-func (storage FileRouteStorage) ShortRoute(fullRoute string) (int, error) {
+func (storage FileRouteStorage) DeleteRouteByIDForUser(_ int, _ int) error {
+	return nil
+}
+
+func (storage FileRouteStorage) ShortRoute(fullRoute string, _ int) (int, error) {
 	file, err := os.OpenFile(storage.FilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		return 0, err
@@ -83,10 +87,10 @@ func (storage FileRouteStorage) GetRouteByID(id int) (string, error) {
 	return "", errors.New("no route with this ID found")
 }
 
-func (storage FileRouteStorage) SaveBatchRoutes(routes []BatchURLShortenerRequest) ([]BatchURLShortenerURLIDs, error) {
+func (storage FileRouteStorage) SaveBatchRoutes(routes []BatchURLShortenerRequest, userID int) ([]BatchURLShortenerURLIDs, error) {
 	var result []BatchURLShortenerURLIDs
 	for _, URLToShort := range routes {
-		id, _ := storage.ShortRoute(URLToShort.URL)
+		id, _ := storage.ShortRoute(URLToShort.URL, userID)
 		result = append(result, BatchURLShortenerURLIDs{ID: id, CorrelationID: URLToShort.ID, OriginalURL: URLToShort.URL})
 	}
 

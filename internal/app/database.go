@@ -3,21 +3,21 @@ package app
 import (
 	"context"
 	"errors"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type BaseDB struct {
 	isPrepared bool
-	Connection *pgx.Conn
+	Connection *pgxpool.Pool
 }
 
 func (db *BaseDB) SetupConnection(dsn string) {
-	conn, err := pgx.Connect(context.Background(), dsn)
+	conn, err := pgxpool.Connect(context.Background(), dsn)
 	if err != nil {
 		return
 	}
 	db.Connection = conn
-	_, err = db.Connection.Exec(context.Background(), "create table shortened_urls (id serial constraint table_name_pk primary key, original_url varchar(2048) not null, user_id int not null);")
+	_, err = db.Connection.Exec(context.Background(), "create table shortened_urls (id serial constraint table_name_pk primary key, original_url varchar(2048) not null, user_id int not null, is_deleted boolean default false not null);")
 	if err != nil {
 		db.isPrepared = false
 	}
@@ -33,10 +33,7 @@ func (db *BaseDB) IsConnectionEstablished() bool {
 }
 
 func (db *BaseDB) CloseConnection() {
-	err := db.Connection.Close(context.Background())
-	if err != nil {
-		return
-	}
+	db.Connection.Close()
 }
 
 func (db *BaseDB) Ping() error {
